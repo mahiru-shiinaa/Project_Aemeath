@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Không backup database và preferences lên Google cloud -->
+    <exclude domain="database" path="aemeath.db" />
+    <exclude domain="sharedpref" path="aemeath_prefs.xml" />
+</full-backup-content>
