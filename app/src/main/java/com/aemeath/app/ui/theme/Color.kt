@@ -46,3 +46,5 @@ val StrengthStrong = Color(0xFF2DD4BF)
 val SyncConnecting = Color(0xFF748FFC)
 val SyncSuccess = Color(0xFF2DD4BF)
 val SyncPending = Color(0xFFFFB547)
+
+

@@ -23,7 +23,7 @@ sealed class Screen(val route: String) {
 
     // LAN Sync
     object LanSync : Screen("lan_sync")
-    object LanSyncHost : Screen("lan_sync_host")
+    object QRScanner : Screen("qr_scanner")
     object LanSyncLog : Screen("lan_sync_log")
 
     // Backup

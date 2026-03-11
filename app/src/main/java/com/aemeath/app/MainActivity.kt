@@ -10,21 +10,31 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.aemeath.app.navigation.Screen
+import com.aemeath.app.ui.account.AccountListScreen
+import com.aemeath.app.ui.account.AddEditAccountScreen
 import com.aemeath.app.ui.auth.SetupScreen
 import com.aemeath.app.ui.auth.UnlockScreen
+import com.aemeath.app.ui.backup.BackupScreen
 import com.aemeath.app.ui.home.HomeScreen
+import com.aemeath.app.ui.lansync.LanSyncScreen
+import com.aemeath.app.ui.lansync.QRScannerScreen
 import com.aemeath.app.ui.main.MainViewModel
+import com.aemeath.app.ui.settings.ChangePasswordScreen
+import com.aemeath.app.ui.settings.SettingsScreen
 import com.aemeath.app.ui.theme.AemeathTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -44,7 +54,6 @@ class MainActivity : ComponentActivity() {
 
             AemeathTheme(darkTheme = isDark) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    // Đợi check setup xong mới navigate
                     if (isSetupComplete != null) {
                         AemeathNavigation(isSetupComplete = isSetupComplete!!)
                     }
@@ -57,32 +66,25 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AemeathNavigation(isSetupComplete: Boolean) {
     val navController = rememberNavController()
-
     val startDestination = if (isSetupComplete) Screen.Unlock.route else Screen.Setup.route
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
+    NavHost(navController = navController, startDestination = startDestination) {
+
         // ─── Auth ─────────────────────────────────────────────────────────────
         composable(Screen.Setup.route) {
-            SetupScreen(
-                onSetupComplete = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Setup.route) { inclusive = true }
-                    }
+            SetupScreen(onSetupComplete = {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Setup.route) { inclusive = true }
                 }
-            )
+            })
         }
 
         composable(Screen.Unlock.route) {
-            UnlockScreen(
-                onUnlocked = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Unlock.route) { inclusive = true }
-                    }
+            UnlockScreen(onUnlocked = {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Unlock.route) { inclusive = true }
                 }
-            )
+            })
         }
 
         // ─── Main ─────────────────────────────────────────────────────────────
@@ -90,6 +92,61 @@ fun AemeathNavigation(isSetupComplete: Boolean) {
             HomeScreen(navController = navController)
         }
 
-        // TODO Phase 2: AccountList, AddAccount, EditAccount, Settings, LanSync, Backup
+        composable(Screen.Settings.route) {
+            SettingsScreen(navController = navController)
+        }
+
+        // ─── Accounts ─────────────────────────────────────────────────────────
+        composable(
+            route = Screen.AccountList.route,
+            arguments = listOf(navArgument("webAppId") { type = NavType.LongType })
+        ) {
+            AccountListScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.AddAccount.route,
+            arguments = listOf(
+                navArgument("webAppId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }
+            )
+        ) {
+            AddEditAccountScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.EditAccount.route,
+            arguments = listOf(navArgument("accountId") { type = NavType.LongType })
+        ) {
+            AddEditAccountScreen(navController = navController)
+        }
+
+        // ─── Phase 3 ──────────────────────────────────────────────────────────
+        composable(Screen.Backup.route) {
+            BackupScreen(navController = navController)
+        }
+        composable(Screen.ChangePassword.route) {
+            ChangePasswordScreen(navController = navController)
+        }
+
+        // ─── Phase 4 ──────────────────────────────────────────────────────────
+        composable(Screen.LanSync.route) {
+            LanSyncScreen(navController = navController)
+        }
+        composable(Screen.QRScanner.route) {
+            val parentEntry = remember(it) {
+                navController.getBackStackEntry(Screen.LanSync.route)
+            }
+            val lanSyncViewModel: com.aemeath.app.ui.lansync.LanSyncViewModel = hiltViewModel(parentEntry)
+
+            QRScannerScreen(
+                navController = navController,
+                onQrScanned = { sessionId, publicKey ->
+                    lanSyncViewModel.handleQrScanned(sessionId, publicKey)
+                }
+            )
+        }
     }
 }

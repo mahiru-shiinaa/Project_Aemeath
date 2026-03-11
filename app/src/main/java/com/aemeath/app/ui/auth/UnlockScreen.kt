@@ -1,6 +1,9 @@
 package com.aemeath.app.ui.auth
 
-import androidx.compose.animation.*
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -27,8 +33,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.aemeath.app.R
+import com.aemeath.app.security.SessionManager
 import com.aemeath.app.ui.theme.*
+import kotlinx.coroutines.delay
 
 @Composable
 fun UnlockScreen(
@@ -37,6 +48,7 @@ fun UnlockScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) onUnlocked()
@@ -45,6 +57,62 @@ fun UnlockScreen(
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    // Hàm trigger BiometricPrompt — phải chạy trong lambda (không phải composable)
+    val showBiometricPrompt: () -> Unit = remember(context) {
+        {
+            val activity = context as? FragmentActivity
+            if (activity != null) {
+                val biometricManager = BiometricManager.from(context)
+                val canAuth = biometricManager.canAuthenticate(
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                )
+                if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
+                    val executor = ContextCompat.getMainExecutor(context)
+                    val callback = object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(
+                            result: BiometricPrompt.AuthenticationResult
+                        ) {
+                            super.onAuthenticationSucceeded(result)
+                            viewModel.onBiometricSuccess()
+                        }
+                        override fun onAuthenticationError(
+                            errorCode: Int, errString: CharSequence
+                        ) {
+                            super.onAuthenticationError(errorCode, errString)
+                            if (errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
+                                errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                                viewModel.onBiometricError("Lỗi vân tay: $errString")
+                            }
+                        }
+                        override fun onAuthenticationFailed() {
+                            super.onAuthenticationFailed()
+                            // Không set error — user có thể thử lại
+                        }
+                    }
+                    val prompt = BiometricPrompt(activity, executor, callback)
+                    val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                        .setTitle("Mở khóa Aemeath")
+                        .setSubtitle("Dùng vân tay hoặc khuôn mặt để mở khóa")
+                        .setAllowedAuthenticators(
+                            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                        )
+                        .build()
+                    prompt.authenticate(promptInfo)
+                }
+            }
+        }
+    }
+
+    // Tự động trigger biometric khi vào màn hình (nếu đã bật)
+    LaunchedEffect(isBiometricEnabled) {
+        if (isBiometricEnabled) {
+            delay(400)
+            showBiometricPrompt()
+        }
     }
 
     Box(
@@ -67,22 +135,14 @@ fun UnlockScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ─── Logo ──────────────────────────────────────────────────────────
-            Box(
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "App Logo",
+                contentScale = ContentScale.Crop, // Giúp ảnh lấp đầy khung
                 modifier = Modifier
-                    .size(88.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(
-                        Brush.linearGradient(colors = listOf(Primary, PrimaryLight))
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = OnPrimary,
-                    modifier = Modifier.size(44.dp)
-                )
-            }
+                    .size(90.dp) // Kích thước bằng cái khung tím cũ
+                    .clip(RoundedCornerShape(22.dp)) // Bo góc giống khung cũ
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -145,7 +205,7 @@ fun UnlockScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ─── Lockout / Error Message ───────────────────────────────────────
+            // ─── Lockout Banner ────────────────────────────────────────────────
             AnimatedVisibility(visible = uiState.isLockedOut) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -204,7 +264,7 @@ fun UnlockScreen(
             if (isBiometricEnabled) {
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
-                    onClick = { /* TODO Phase 2: trigger BiometricPrompt */ },
+                    onClick = { showBiometricPrompt() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -225,11 +285,11 @@ fun UnlockScreen(
                 }
             }
 
-            // Wrong attempts indicator
+            // ─── Wrong Attempts Indicator ──────────────────────────────────────
             if (uiState.wrongAttempts > 0 && !uiState.isLockedOut) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Sai ${uiState.wrongAttempts}/${com.aemeath.app.security.SessionManager.MAX_WRONG_ATTEMPTS} lần",
+                    text = "Sai ${uiState.wrongAttempts}/${SessionManager.MAX_WRONG_ATTEMPTS} lần",
                     style = MaterialTheme.typography.labelSmall,
                     color = StrengthWeak
                 )

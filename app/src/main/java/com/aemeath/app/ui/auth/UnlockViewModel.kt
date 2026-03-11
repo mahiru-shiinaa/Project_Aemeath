@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 
 data class UnlockUiState(
@@ -70,9 +71,7 @@ class UnlockViewModel @Inject constructor(
 
     fun unlockWithPassword(password: String) {
         if (sessionManager.isLockedOut()) {
-            _uiState.value = _uiState.value.copy(
-                error = "Quá nhiều lần sai. Vui lòng đợi."
-            )
+            _uiState.value = _uiState.value.copy(error = "Quá nhiều lần sai. Vui lòng đợi.")
             return
         }
 
@@ -100,7 +99,7 @@ class UnlockViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Đúng password — derive key và unlock
+                // Đúng password → derive SecretKey và unlock
                 val saltBase64 = preferencesRepository.getEncryptionSalt()
                     ?: throw Exception("Không tìm thấy salt")
                 val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
@@ -116,6 +115,35 @@ class UnlockViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    // Gọi khi BiometricPrompt xác thực thành công
+    fun onBiometricSuccess() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                // Lấy raw key bytes đã lưu khi setup
+                val keyBase64 = preferencesRepository.getBiometricEncryptedKey()
+                    ?: throw Exception("Chưa có dữ liệu vân tay, vui lòng nhập mật khẩu")
+
+                // Reconstruct SecretKey từ ByteArray
+                val keyBytes = Base64.decode(keyBase64, Base64.NO_WRAP)
+                val secretKey = SecretKeySpec(keyBytes, "AES")
+
+                sessionManager.unlock(secretKey)
+                _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Vân tay thất bại: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun onBiometricError(message: String) {
+        _uiState.value = _uiState.value.copy(error = message)
     }
 
     fun clearError() {

@@ -42,11 +42,20 @@ interface WebAppDao {
 @Dao
 interface AccountDao {
 
-    @Query("SELECT * FROM accounts WHERE webAppId = :webAppId ORDER BY updatedAt DESC")
+//    @Query("SELECT * FROM accounts WHERE webAppId = :webAppId ORDER BY updatedAt DESC")
+//    fun getAccountsByWebApp(webAppId: Long): Flow<List<AccountEntity>>
+//
+//    @Query("SELECT * FROM accounts WHERE webAppId = :webAppId ORDER BY updatedAt DESC")
+//    suspend fun getAccountsByWebAppSync(webAppId: Long): List<AccountEntity>
+
+    // Sắp xếp theo position tăng dần
+    @Query("SELECT * FROM accounts WHERE webAppId = :webAppId ORDER BY position ASC, id DESC")
     fun getAccountsByWebApp(webAppId: Long): Flow<List<AccountEntity>>
 
-    @Query("SELECT * FROM accounts WHERE webAppId = :webAppId ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM accounts WHERE webAppId = :webAppId ORDER BY position ASC, id DESC")
     suspend fun getAccountsByWebAppSync(webAppId: Long): List<AccountEntity>
+
+
 
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getAccountById(id: Long): AccountEntity?
@@ -55,14 +64,16 @@ interface AccountDao {
     suspend fun getAllAccounts(): List<AccountEntity>
 
     @Query("""
-        SELECT a.* FROM accounts a 
-        JOIN web_apps w ON a.webAppId = w.id 
-        WHERE a.title LIKE '%' || :query || '%' 
+        SELECT a.* FROM accounts a
+        JOIN web_apps w ON a.webAppId = w.id
+        WHERE a.title LIKE '%' || :query || '%'
         OR a.username LIKE '%' || :query || '%'
         OR w.name LIKE '%' || :query || '%'
         ORDER BY a.updatedAt DESC
     """)
     fun searchAccounts(query: String): Flow<List<AccountEntity>>
+
+
 
     @Query("SELECT COUNT(*) FROM accounts")
     fun getTotalAccountCount(): Flow<Int>
@@ -75,6 +86,9 @@ interface AccountDao {
 
     @Update
     suspend fun update(account: AccountEntity)
+
+    @Update
+    suspend fun updateList(accounts: List<AccountEntity>)
 
     @Delete
     suspend fun delete(account: AccountEntity)

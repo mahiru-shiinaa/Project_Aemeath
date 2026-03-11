@@ -17,7 +17,7 @@ import com.aemeath.app.data.db.entity.WebAppEntity
         AccountEntity::class,
         AppSettingEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AemeathDatabase : RoomDatabase() {

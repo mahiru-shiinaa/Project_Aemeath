@@ -37,7 +37,11 @@ class SetupViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(passwordStrength = strength)
     }
 
-    fun createMasterPassword(password: String, confirmPassword: String, enableBiometric: Boolean) {
+    fun createMasterPassword(
+        password: String,
+        confirmPassword: String,
+        enableBiometric: Boolean
+    ) {
         if (password != confirmPassword) {
             _uiState.value = _uiState.value.copy(error = "Mật khẩu xác nhận không khớp")
             return
@@ -50,14 +54,14 @@ class SetupViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                // 1. Tạo salt mới
+                // 1. Tạo salt
                 val salt = cryptoManager.generateSalt()
                 val saltBase64 = Base64.encodeToString(salt, Base64.NO_WRAP)
 
-                // 2. Derive encryption key
+                // 2. Derive SecretKey từ password + salt
                 val encryptionKey = cryptoManager.deriveKeyFromPassword(password, salt)
 
-                // 3. Lưu hash để verify sau
+                // 3. Hash password để verify khi đăng nhập
                 val passwordHash = cryptoManager.hashPasswordForVerification(password)
 
                 // 4. Lưu vào DataStore
@@ -65,16 +69,27 @@ class SetupViewModel @Inject constructor(
                 preferencesRepository.savePasswordHash(passwordHash)
                 preferencesRepository.setSetupComplete(true)
 
-                // 5. Setup biometric nếu bật
+                // 5. Setup biometric
                 if (enableBiometric) {
-                    cryptoManager.generateBiometricKey()
-                    preferencesRepository.setBiometricEnabled(true)
+                    try {
+                        cryptoManager.generateBiometricKey()
+                        preferencesRepository.setBiometricEnabled(true)
+
+                        // encryptionKey là SecretKey → lấy .encoded (ByteArray) rồi Base64
+                        val keyBase64 = Base64.encodeToString(encryptionKey.encoded, Base64.NO_WRAP)
+                        preferencesRepository.saveBiometricEncryptedKey(keyBase64)
+                    } catch (e: Exception) {
+                        preferencesRepository.setBiometricEnabled(false)
+                    }
+                } else {
+                    preferencesRepository.setBiometricEnabled(false)
                 }
 
-                // 6. Unlock session
+                // 6. Unlock session với SecretKey
                 sessionManager.unlock(encryptionKey)
 
                 _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

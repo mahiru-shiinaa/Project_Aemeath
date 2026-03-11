@@ -33,6 +33,7 @@ data class AccountEntity(
     val username: String,
     val encryptedPassword: String,  // Đã mã hóa AES-256
     val notes: String = "",
+    val position: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
