@@ -1,475 +1,575 @@
-# 🔐 AEMEATH – Master Prompt (Rebuild Reference)
+<div align="center">
 
-> Dùng prompt này khi cần bắt đầu lại từ đầu trong một chat mới.
-> Paste toàn bộ nội dung này vào đầu cuộc hội thoại mới với Claude.
+<img src="app/src/main/res/drawable/logo.png" width="120" height="120" style="border-radius: 28px;" alt="Aemeath Logo"/>
 
----
+# 🔐 Aemeath
 
-## YÊU CẦU TỔNG QUAN
+### Trình quản lý mật khẩu offline, bảo mật cao cho Android
 
-Tôi cần bạn giúp tôi vibe-coding một ứng dụng Android tên **Aemeath** — một **password manager offline** với tính năng **LAN Sync** bảo mật cao. Ứng dụng chạy hoàn toàn offline, không dùng server trung gian, mã hóa AES-256 end-to-end.
+[![Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)](https://android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.06-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![AES-256](https://img.shields.io/badge/Encryption-AES--256--GCM-FF6B6B)](https://en.wikipedia.org/wiki/Galois/Counter_Mode)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![API](https://img.shields.io/badge/Min%20SDK-26%20(Android%208.0)-orange)](https://apilevels.com)
 
----
+**Aemeath** là một ứng dụng quản lý mật khẩu **hoàn toàn offline**, **mã hóa AES-256-GCM end-to-end**, không có server trung gian, với tính năng **LAN Sync** bảo mật cho phép xem mật khẩu trực tiếp trên trình duyệt máy tính trong cùng mạng nội bộ.
 
-## 1. THÔNG TIN MÔI TRƯỜNG
+[📦 Tải APK](#-cài-đặt) · [🚀 Tính năng](#-tính-năng) · [🔒 Bảo mật](#-nguyên-lý-bảo-mật) · [🏗️ Kiến trúc](#️-kiến-trúc) · [📡 LAN Sync](#-lan-sync)
 
-- **IDE:** Android Studio Koala 2024.1.1 Patch 1 (AGP 8.5.1)
-- **JDK:** 17
-- **OS:** Windows 11
-- **Target:** Chia sẻ APK cho vài người dùng (không lên Play Store)
-- **Người dùng:** Mới học lập trình, cần hướng dẫn step-by-step, paste-and-run
-
----
-
-## 2. CÔNG NGHỆ SỬ DỤNG
-
-### Ngôn ngữ & Framework
-- **Kotlin 1.9.24** (KHÔNG dùng Kotlin 2.0+ vì AGP 8.5.1 không tương thích)
-- **Jetpack Compose** với `composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }`
-- **KHÔNG** dùng plugin `kotlin.compose` (chỉ có từ Kotlin 2.0+)
-- **Material Design 3**
-
-### Build Config (QUAN TRỌNG – giữ đúng version)
-```
-agp = "8.5.1"
-kotlin = "1.9.24"
-ksp = "1.9.24-1.0.20"
-compileSdk = 34
-targetSdk = 34
-minSdk = 26
-composeBom = "2024.06.00"
-kotlinCompilerExtensionVersion = "1.5.14"
-activityCompose = "1.9.0"
-lifecycleRuntimeKtx = "2.8.3"
-```
-
-### Thư viện chính
-| Thư viện | Mục đích |
-|----------|----------|
-| Room 2.6.1 | Local database |
-| Hilt 2.51.1 | Dependency Injection |
-| KSP 1.9.24-1.0.20 | Annotation processing |
-| DataStore Preferences 1.1.1 | Settings |
-| androidx.security-crypto 1.0.0 | Secure storage |
-| androidx.biometric 1.1.0 | Vân tay / FaceID |
-| Navigation Compose 2.7.7 | Navigation |
-| ZXing Android Embedded 4.3.0 | QR scanner |
-| QRose 1.0.1 | QR code generator |
-| NanoHTTPD 2.3.1 | Local HTTP server cho LAN Sync |
-| Coroutines 1.8.1 | Async |
-| Accompanist 0.34.0 | System UI |
-| Splashscreen 1.0.1 | Splash screen |
-
-### Package name
-```
-com.aemeath.app
-```
+</div>
 
 ---
 
-## 3. KIẾN TRÚC CODE
+## 📸 Giao diện
+
+| Màn hình Unlock | Trang Chủ | Danh sách Tài khoản | LAN Sync |
+|:-:|:-:|:-:|:-:|
+| <img src="docs/screenshots/unlock.png" width="180"/> | <img src="docs/screenshots/home.png" width="180"/> | <img src="docs/screenshots/accounts.png" width="180"/> | <img src="docs/screenshots/lansync.png" width="180"/> |
+
+> *Hỗ trợ giao diện Sáng / Tối / Theo hệ thống với Material Design 3.*
+
+---
+
+## ✨ Tính năng
+
+### 🔑 Quản lý mật khẩu
+- ✅ Lưu trữ mật khẩu theo nhóm **Web / Ứng dụng** với emoji icon tùy chỉnh
+- ✅ Tìm kiếm **real-time** (debounce 300ms) theo tên app, username, tiêu đề
+- ✅ **Sắp xếp** A→Z, Z→A, Mới nhất, Sửa gần nhất
+- ✅ Chế độ xem **Danh sách** & **Lưới**
+- ✅ **Kéo thả** để sắp xếp thứ tự tài khoản
+- ✅ **Chọn nhiều** → Xóa hàng loạt
+- ✅ Swipe-to-delete với **Undo** snackbar
+- ✅ **Copy password** → Tự động xóa clipboard sau 30 giây
+- ✅ **QR Share** tài khoản (tự hủy sau 60 giây)
+
+### 🛡️ Xác thực & Bảo mật
+- ✅ **Master Password** với PBKDF2 (310.000 iterations)
+- ✅ **Mở khóa vân tay** (BiometricPrompt API + Android Keystore)
+- ✅ Khóa **5 lần sai** → lockout 30 giây (chống brute force)
+- ✅ Auto-lock khi vào background
+- ✅ **Đổi Master Password** + tự động re-encrypt toàn bộ dữ liệu
+
+### 💾 Backup & Restore
+- ✅ Xuất file **`.aem`** — mã hóa AES-256 với mật khẩu backup riêng
+- ✅ Xuất / Nhập **CSV** và **Google CSV** (tương thích Chrome Password Manager)
+- ✅ Chế độ **Merge** (gộp) hoặc **Overwrite** (ghi đè) khi import
+- ✅ Tương thích ngược với định dạng backup V1/V2
+
+### 📡 LAN Sync
+- ✅ Xem mật khẩu trực tiếp trên **trình duyệt máy tính** qua Wi-Fi nội bộ
+- ✅ Mã hóa **ECDH key exchange** + xác nhận mã 6 số
+- ✅ **Không cần cài phần mềm** trên máy tính
+- ✅ Phiên tự hủy sau 3 phút
+
+### 🎨 UI/UX
+- ✅ **Material Design 3** với động lực mượt mà
+- ✅ Radar animation, Step timeline, Password strength bar
+- ✅ **Haptic feedback** khi copy, confirm, error
+- ✅ Empty states và loading states đầy đủ
+
+---
+
+## 🔒 Nguyên lý Bảo mật
+
+### 1. Mã hóa dữ liệu lưu trữ
+
+Mọi mật khẩu được mã hóa bằng **AES-256-GCM** trước khi lưu vào database.
+
+```
+Master Password + Salt (32 bytes)
+        │
+        ▼ PBKDF2WithHmacSHA256
+        │  310.000 iterations (OWASP 2023)
+        │  Key length: 256-bit
+        ▼
+   Encryption Key (chỉ tồn tại trong RAM)
+        │
+        ├─► encrypt(password) ──► IV(12B) + Ciphertext + GCM Tag(16B)
+        │                                 └──────────────────────────┘
+        │                                     Base64 → lưu vào DB
+        │
+        └─► Khi app lock → Key bị xóa khỏi RAM
+```
+
+**Định dạng lưu:** `Base64(IV[12 bytes] + Ciphertext + GCM_Tag[16 bytes])`
+
+### 2. Quản lý Session (SessionManager)
+
+```kotlin
+// Key CHỈ tồn tại trong memory, KHÔNG bao giờ ghi xuống disk
+private var _encryptionKey: SecretKey? = null
+
+// Auto-lock khi onStop()
+fun lock() {
+    _encryptionKey = null   // GC sẽ thu hồi
+    _isUnlocked.value = false
+}
+```
+
+| Sự kiện | Hành động |
+|---------|-----------|
+| App vào background | Tự động lock, xóa key khỏi RAM |
+| Sai mật khẩu 5 lần | Lockout 30 giây |
+| Copy password | Tự động xóa clipboard sau 30 giây |
+| Đổi Master Password | Re-encrypt toàn bộ DB với key mới |
+
+### 3. Xác thực bằng Vân tay (Android Keystore)
+
+```
+Biometric Key ──────────────────────── Android Keystore (TEE/Secure Enclave)
+     │                                        │
+     │  setUserAuthenticationRequired(true)   │
+     │  setInvalidatedByBiometricEnrollment   │
+     ▼                                        │
+BiometricPrompt ◄────────── Xác thực ─────────┘
+     │
+     ▼ Thành công
+SessionManager.unlock(sessionKey)
+```
+
+### 4. LAN Sync — ECDH Key Exchange
+
+```
+PHONE (Server)                    LAPTOP (Browser)
+      │                                  │
+      ├─ Sinh ECDH key pair (secp256r1) ─┤
+      │                                  │
+      │◄──── GET /api/info ──────────────┤
+      │  {sessionId, phonePublicKey}     │
+      │                                  │
+      │                          Sinh ECDH key pair
+      │                                  │
+      │◄──── POST /api/handshake ────────┤
+      │    {laptopPublicKey}             │
+      │                                  │
+      ├─ ECDH compute sharedSecret ──────┤
+      │                                  │
+      │  verificationCode = SHA256(sharedSecret)[0:6 digits]
+      │                                  │
+    [User so sánh 6 số trên 2 màn hình và xác nhận]
+      │                                  │
+      │  sessionKey = SHA256(sharedSecret + "AEMEATH_SESSION_KEY")
+      │                                  │
+      ├─ AES-GCM encrypt payload ────────►
+      │                                  │
+```
+
+**Tại sao an toàn?**
+- Khóa phiên được tạo mới mỗi lần, không bao giờ tái sử dụng
+- Mã 6 số xác nhận đảm bảo không có MITM attack
+- Payload mã hóa AES-256-GCM trước khi truyền
+- Phiên tự hủy sau 3 phút, không lưu lại gì trên máy tính
+
+### 5. Điều không bao giờ làm
+
+```
+❌ Không lưu plaintext password xuống disk
+❌ Không lưu encryption key xuống disk  
+❌ Không upload data lên bất kỳ server nào
+❌ Không dùng allowBackup=true trong Manifest
+❌ Không log password hoặc key ra Logcat
+❌ Không dùng AES-ECB mode (chỉ dùng GCM)
+❌ Không dùng MD5, SHA1 cho mật khẩu
+```
+
+---
+
+## 🏗️ Kiến trúc
 
 ### Pattern
-- **MVVM** (Model – ViewModel – View)
-- **Repository Pattern** cho data layer
-- **Hilt** cho Dependency Injection
-- **StateFlow + collectAsState** cho UI state
-- **Coroutines** cho async operations
+
+```
+View (Jetpack Compose)
+    │  collectAsState / StateFlow
+    ▼
+ViewModel (Hilt @HiltViewModel)
+    │  coroutines / Flow
+    ▼
+Repository
+    │
+    ├──► Room Database (AccountDao, WebAppDao)
+    ├──► DataStore (PreferencesRepository)
+    └──► CryptoManager / SessionManager
+```
+
+**MVVM + Repository Pattern + Dependency Injection (Hilt)**
 
 ### Cấu trúc thư mục
+
 ```
 com.aemeath.app/
-├── AemeathApp.kt              (@HiltAndroidApp)
-├── MainActivity.kt            (@AndroidEntryPoint, NavHost)
+├── AemeathApp.kt                  # @HiltAndroidApp
+├── MainActivity.kt                # NavHost, Theme
+│
 ├── data/
 │   ├── db/
-│   │   ├── AemeathDatabase.kt (Room @Database)
+│   │   ├── AemeathDatabase.kt     # Room @Database (v2)
 │   │   ├── dao/
-│   │   │   └── Daos.kt        (WebAppDao, AccountDao, AppSettingDao)
+│   │   │   └── Daos.kt            # WebAppDao, AccountDao, AppSettingDao
 │   │   └── entity/
-│   │       └── Entities.kt    (WebAppEntity, AccountEntity, AppSettingEntity)
+│   │       └── Entities.kt        # WebAppEntity, AccountEntity
 │   └── repository/
-│       └── PreferencesRepository.kt (DataStore)
+│       ├── AccountRepository.kt   # CRUD + encrypt/decrypt
+│       └── PreferencesRepository.kt # DataStore settings
+│
 ├── di/
-│   └── AppModule.kt           (Hilt @Module)
+│   └── AppModule.kt               # Hilt @Module — Room, DAOs
+│
 ├── navigation/
-│   └── Screen.kt              (sealed class routes)
+│   └── Screen.kt                  # Sealed class routes
+│
 ├── security/
-│   ├── CryptoManager.kt       (AES-256-GCM, PBKDF2, password tools)
-│   └── SessionManager.kt      (in-memory key, auto-lock, wrong attempts)
+│   ├── CryptoManager.kt           # AES-256-GCM, PBKDF2, Biometric
+│   └── SessionManager.kt          # In-memory key, lockout logic
+│
 └── ui/
     ├── auth/
     │   ├── SetupScreen.kt + SetupViewModel.kt
     │   └── UnlockScreen.kt + UnlockViewModel.kt
     ├── home/
     │   ├── HomeScreen.kt + HomeViewModel.kt
-    │   └── components/
-    │       ├── WebAppCard.kt
-    │       └── SearchBar.kt
+    │   └── (WebAppListItem, GridItem, SearchBar, StatsCard)
     ├── account/
     │   ├── AccountListScreen.kt + AccountListViewModel.kt
-    │   ├── AddEditAccountScreen.kt + AddEditViewModel.kt
-    │   └── components/
-    │       ├── AccountItem.kt
-    │       ├── PasswordField.kt
-    │       └── PasswordGenerator.kt
+    │   └── AddEditAccountScreen.kt + AddEditAccountViewModel.kt
     ├── settings/
     │   ├── SettingsScreen.kt + SettingsViewModel.kt
     │   └── ChangePasswordScreen.kt + ChangePasswordViewModel.kt
     ├── backup/
     │   └── BackupScreen.kt + BackupViewModel.kt
     ├── lansync/
-    │   ├── LanSyncScreen.kt
-    │   ├── LanSyncHostScreen.kt + LanSyncViewModel.kt
-    │   ├── LanSyncLogScreen.kt
+    │   ├── LanSyncScreen.kt + LanSyncViewModel.kt
+    │   ├── QRScannerScreen.kt
     │   └── server/
-    │       ├── LanSyncServer.kt   (NanoHTTPD)
-    │       └── LanSyncCrypto.kt   (ECDH, verification code)
+    │       ├── LanSyncServer.kt   # NanoHTTPD
+    │       └── LanSyncCrypto.kt   # ECDH, AES session
     ├── main/
     │   └── MainViewModel.kt
     └── theme/
-        ├── Color.kt
-        ├── Theme.kt
-        └── Type.kt
+        ├── Color.kt · Theme.kt · Type.kt
+        └── SoftCardModifier.kt
 ```
 
 ---
 
-## 4. DATABASE SCHEMA
+## 🗄️ Cấu trúc Database
 
 ### Bảng `web_apps`
-```
-id          Long (PK autoGenerate)
-name        String
-iconEmoji   String (default "🌐")
-iconBase64  String? (ảnh custom)
-createdAt   Long (timestamp)
-updatedAt   Long (timestamp)
-```
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `id` | `Long` (PK autoGenerate) | ID tự tăng |
+| `name` | `String` | Tên ứng dụng (VD: "Facebook") |
+| `iconEmoji` | `String` | Emoji icon (mặc định `"🌐"`) |
+| `iconBase64` | `String?` | Ảnh icon tùy chỉnh (nullable) |
+| `createdAt` | `Long` | Timestamp tạo |
+| `updatedAt` | `Long` | Timestamp sửa |
 
 ### Bảng `accounts`
-```
-id                Long (PK autoGenerate)
-webAppId          Long (FK → web_apps.id, CASCADE DELETE)
-title             String
-username          String
-encryptedPassword String (AES-256-GCM encrypted, Base64)
-notes             String
-createdAt         Long
-updatedAt         Long
-```
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `id` | `Long` (PK autoGenerate) | ID tự tăng |
+| `webAppId` | `Long` (FK) | Liên kết tới `web_apps.id` (CASCADE DELETE) |
+| `title` | `String` | Tiêu đề tài khoản |
+| `username` | `String` | Tên đăng nhập |
+| `encryptedPassword` | `String` | Mật khẩu đã mã hóa AES-256-GCM (Base64) |
+| `notes` | `String` | Ghi chú |
+| `position` | `Int` | Thứ tự hiển thị (kéo thả) |
+| `createdAt` | `Long` | Timestamp tạo |
+| `updatedAt` | `Long` | Timestamp sửa |
 
 ### Bảng `app_settings`
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `key` | `String` (PK) | Khóa cài đặt |
+| `value` | `String` | Giá trị |
+
+### DataStore (Preferences)
+
+| Key | Kiểu | Mô tả |
+|-----|------|-------|
+| `is_setup_complete` | `Boolean` | Đã thiết lập lần đầu chưa |
+| `password_hash` | `String` | Hash để xác minh Master Password |
+| `encryption_salt` | `String` | Salt PBKDF2 (Base64) |
+| `biometric_enabled` | `Boolean` | Vân tay có bật không |
+| `biometric_encrypted_key` | `String` | Session key backup cho vân tay |
+| `theme` | `String` | `"light"` / `"dark"` / `"system"` |
+| `auto_lock_minutes` | `Int` | Thời gian tự khóa |
+| `list_view_mode` | `String` | `"list"` / `"grid"` |
+
+---
+
+## ⚙️ Công nghệ sử dụng
+
+| Thư viện | Phiên bản | Mục đích |
+|----------|-----------|---------|
+| **Kotlin** | 1.9.24 | Ngôn ngữ lập trình |
+| **Jetpack Compose** | BOM 2024.06.00 | UI framework declarative |
+| **Material Design 3** | — | Design system |
+| **Room** | 2.6.1 | SQLite database ORM |
+| **Hilt** | 2.51.1 | Dependency Injection |
+| **KSP** | 1.9.24-1.0.20 | Annotation processing |
+| **DataStore Preferences** | 1.1.1 | Key-value persistent storage |
+| **androidx.biometric** | 1.1.0 | BiometricPrompt API |
+| **Navigation Compose** | 2.7.7 | In-app navigation |
+| **ML Kit Barcode** | — | QR code scanning |
+| **ZXing** | 4.3.0 | QR code generation |
+| **NanoHTTPD** | 2.3.1 | Local HTTP server (LAN Sync) |
+| **Coroutines** | 1.8.1 | Async/concurrent programming |
+| **Accompanist** | 0.34.0 | System UI utilities |
+| **Splashscreen** | 1.0.1 | Splash screen API |
+
+### Build Config
+
+```kotlin
+agp                          = "8.5.1"
+kotlin                       = "1.9.24"
+ksp                          = "1.9.24-1.0.20"
+compileSdk                   = 34
+targetSdk                    = 34
+minSdk                       = 26  // Android 8.0+
+kotlinCompilerExtensionVersion = "1.5.14"
 ```
-key   String (PK)
-value String
+
+---
+
+## 🚀 Cài đặt & Chạy
+
+### Yêu cầu
+
+| Công cụ | Phiên bản |
+|---------|-----------|
+| Android Studio | Koala 2024.1.1 Patch 1 trở lên |
+| JDK | 17 |
+| Android SDK | API 26+ |
+| OS | Windows / macOS / Linux |
+
+### Clone & Build
+
+```bash
+# 1. Clone repository
+git clone https://github.com/your-username/aemeath.git
+cd aemeath
+
+# 2. Mở Android Studio → File → Open → chọn thư mục vừa clone
+
+# 3. Sync Gradle (Android Studio tự làm khi mở)
+./gradlew assembleDebug
+
+# 4. Cài lên thiết bị (kết nối USB + bật USB Debugging)
+./gradlew installDebug
+```
+
+### Build APK Release
+
+```bash
+# Build APK release (unsigned)
+./gradlew assembleRelease
+
+# APK sẽ nằm tại:
+# app/build/outputs/apk/release/app-release-unsigned.apk
+```
+
+> **Lưu ý:** Để chia sẻ APK cho người khác, bạn cần ký APK bằng keystore. Xem hướng dẫn [ký APK](#-ký-apk-release).
+
+### Ký APK Release
+
+```bash
+# 1. Tạo keystore (chỉ làm 1 lần)
+keytool -genkey -v -keystore aemeath-release.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -alias aemeath
+
+# 2. Ký APK
+jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+  -keystore aemeath-release.jks \
+  app/build/outputs/apk/release/app-release-unsigned.apk \
+  aemeath
+
+# 3. Zipalign (tối ưu)
+zipalign -v 4 \
+  app/build/outputs/apk/release/app-release-unsigned.apk \
+  aemeath-release.apk
 ```
 
 ---
 
-## 5. BẢO MẬT – QUAN TRỌNG NHẤT
+## 📦 Đưa APK lên GitHub Releases
 
-### Encryption
-- **AES-256-GCM** cho mọi password lưu xuống db
-- **PBKDF2WithHmacSHA256** để derive key từ Master Password
-  - Iterations: **310,000** (OWASP 2023 standard)
-  - Key length: 256-bit
-  - Salt: 32 bytes SecureRandom
-- **IV**: 12 bytes SecureRandom, prepend vào ciphertext
-- Format lưu: `Base64(IV + ciphertext + GCM_tag)`
+### Cách 1: Qua GitHub Website (Đơn giản nhất)
 
-### Session
-- Encryption key **chỉ sống trong memory** (SessionManager), KHÔNG lưu disk
-- Auto-lock khi app vào background
-- Sai 5 lần → lockout 30 giây
-- Constant-time comparison để chống timing attack
+**Bước 1:** Build APK release (xem phần trên)
 
-### Android Keystore (Biometric)
-- Key biometric lưu trong Android Keystore
-- `setUserAuthenticationRequired(true)`
-- `setInvalidatedByBiometricEnrollment(true)`
+**Bước 2:** Truy cập repository trên GitHub → Tab **"Releases"** → **"Create a new release"**
 
-### LAN Sync Security
-- **ECDH** key exchange (Elliptic Curve Diffie-Hellman)
-- Shared secret → **verification code 6 số** (first 6 digits of SHA-256 hash)
-- **AES session key** cho mỗi phiên sync
-- Không dùng server trung gian
-- Phiên tự hủy sau 3 phút
+**Bước 3:** Điền thông tin:
+```
+Tag version : v1.0.0
+Release title: Aemeath v1.0.0
+Description  : (Mô tả các thay đổi)
+```
+
+**Bước 4:** Kéo thả file `aemeath-release.apk` vào ô **"Attach binaries"**
+
+**Bước 5:** Nhấn **"Publish release"** ✅
 
 ---
 
-## 6. TOÀN BỘ CHỨC NĂNG CẦN IMPLEMENT
+### Cách 2: Qua GitHub CLI (Nhanh hơn)
 
-### A. Authentication Layer
+```bash
+# Cài GitHub CLI (nếu chưa có)
+# Windows: winget install GitHub.cli
+# macOS:   brew install gh
 
-#### Setup (lần đầu)
-- Tạo Master Password (min 6 ký tự)
-- Xác nhận lại password
-- Hiển thị password strength bar real-time (Weak/Fair/Good/Strong)
-- Toggle bật/tắt sinh trắc học
-- Sinh PBKDF2 key, lưu salt + hash xuống DataStore
-- Tự động unlock session sau khi setup xong
+# Đăng nhập
+gh auth login
 
-#### Unlock
-- Nhập Master Password với auto-focus
-- Icon toggle ẩn/hiện password
-- Đếm sai: hiển thị `X/5 lần`
-- Lockout 30s với countdown timer
-- Nút mở bằng vân tay (nếu đã bật)
-- BiometricPrompt API đầy đủ
+# Tạo release và upload APK
+gh release create v1.0.0 \
+  ./aemeath-release.apk \
+  --title "Aemeath v1.0.0" \
+  --notes "## 🎉 Aemeath v1.0.0
 
-#### Đổi Master Password
-- Yêu cầu nhập password cũ, kiểm tra hợp lệ
-- Nhập password mới + xác nhận
-- Re-encrypt **toàn bộ** accounts trong db với key mới
-- Tạo salt mới, xóa key cũ khỏi memory
+### Tính năng
+- Quản lý mật khẩu offline với AES-256-GCM
+- LAN Sync qua ECDH key exchange  
+- Backup/Restore (.aem, CSV, Google CSV)
+- Mở khóa vân tay
 
-#### Session Security
-- Auto-lock khi `onStop()` (trừ khi đang LAN Sync)
-- Clear clipboard sau 30 giây khi copy password
-- Yêu cầu nhập lại Master Password trước khi tạo phiên LAN Sync
+### Cài đặt
+1. Tải file APK bên dưới
+2. Trên điện thoại: Cài đặt → Bảo mật → Cho phép cài từ nguồn không rõ
+3. Mở file APK và cài đặt"
+```
 
 ---
 
-### B. Core Password Manager
+### Cách 3: GitHub Actions (Tự động hóa)
 
-#### Trang Chủ
-- **AppBar**: Logo Aemeath bên trái, tiêu đề giữa, icon Settings bên phải
-- **Stats row**: Tổng số Web/App và tổng số tài khoản
-- **Search bar**: Tìm kiếm real-time (debounce 300ms), search cả tên web/app lẫn username
-- **RecyclerView** (LazyColumn / LazyVerticalGrid):
-  - Item: icon emoji, tên Web/App, số tài khoản
-  - Click → màn hình danh sách tài khoản
-- **Toolbar menu** (3 chấm):
-  - Sắp xếp: A-Z, Z-A, Mới nhất, Sửa gần nhất
-  - Chủ đề: Sáng / Tối / Hệ thống
-  - Chọn nhiều → Xóa hàng loạt
-  - Dạng xem: Danh sách / Lưới
-- **FAB**: Thêm tài khoản mới
-- **BottomNavigation**: Trang Chủ ↔ Cài Đặt
+Tạo file `.github/workflows/release.yml`:
 
-#### Thêm/Sửa Tài Khoản
-- Dropdown chọn Web/App (có thể gõ tìm kiếm)
-  - Nếu chưa tồn tại → nút "Tạo mới" + chọn emoji icon
-- Field: Tiêu đề tài khoản
-- Field: Username (với nút copy)
-- Field: Password
-  - Toggle ẩn/hiện
-  - Password strength bar
-  - Nút **Generate** → mở bottom sheet tùy chọn:
-    - Độ dài: slider 8-32
-    - Toggle: Chữ hoa / Chữ thường / Số / Ký tự đặc biệt
-    - Preview password sinh ra
-    - Nút "Dùng password này"
-- Field: Ghi chú (multiline)
-- Validate: không để trống Web/App, Username, Password
-- Lưu: mã hóa password → AccountEntity → Room
+```yaml
+name: Build & Release APK
 
-#### Danh sách Tài Khoản theo Web/App
-- Header: icon lớn, tên Web/App, số lượng account, ảnh nền mờ
-- Mỗi account item:
-  - Tiêu đề + username
-  - Password (ẩn `••••••`) + icon toggle hiện
-  - Nút copy username (toast "Đã sao chép")
-  - Nút copy password (toast + auto-clear clipboard 30s)
-  - Ngày sửa đổi
-  - 3 nút: QR Share | Sửa | Xóa (confirm dialog)
-- Menu 3 chấm: chọn nhiều → xóa hàng loạt
-- Swipe-to-delete với Undo snackbar
+on:
+  push:
+    tags:
+      - 'v*'   # Kích hoạt khi push tag dạng v1.0.0
 
-#### QR Share Account
-- Tạo QR chứa thông tin account (username + password đã mã hóa AES với temp key)
-- Hiển thị trong bottom sheet
-- QR tự hủy sau 60 giây
-- Cảnh báo "Chỉ dùng ở nơi an toàn"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
----
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-### C. Backup & Restore
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-#### Xuất
-- Xuất database encrypted (file .aem) → chọn thư mục lưu
-- Xuất CSV (plaintext) → warning trước khi xuất
-- Xuất Google CSV format (tương thích import vào Chrome)
-- Hiển thị kích thước file, thời gian xuất
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
 
-#### Nhập
-- Nhập file .aem (encrypted backup)
-- Nhập CSV thông thường
-- Nhập Google CSV (passwords.csv từ Chrome)
-- Preview số record trước khi import
-- Chọn: Merge (giữ cả hai) hoặc Overwrite (xóa hết rồi import)
-- Confirm dialog trước khi overwrite
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
 
-#### Sao lưu tự động
-- Toggle bật/tắt
-- Chọn thư mục lưu (SAF DocumentFile)
-- Chu kỳ: Mỗi ngày / Mỗi tuần
-- Chỉ backup khi có WiFi (toggle)
-- Log lần backup cuối
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          files: app/build/outputs/apk/release/app-release-signed.apk
+          name: "Aemeath ${{ github.ref_name }}"
+          generate_release_notes: true
+```
+
+> **Cách lưu secrets:** GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+
+**Cách tạo tag để kích hoạt:**
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ---
 
-### D. LAN Sync (Secure Device Link)
+## 📱 Cách cài APK từ Releases
 
-#### Flow hoàn chỉnh
+Hướng dẫn cho người dùng cuối:
 
-**Android (Host):**
-1. Yêu cầu nhập Master Password
-2. Mở NanoHTTPD server trên port 8080
-3. Sinh `sessionId`, ECDH key pair, timeout 3 phút
-4. Hiển thị IP nội bộ + link `http://IP:8080`
-5. Animation "radar" đang chờ kết nối
-6. Nút: Sao chép link | Làm mới phiên | Hủy
-
-**Laptop (Browser):**
-7. Người dùng mở trình duyệt, nhập link
-8. Web interface hiển thị logo + QR code lớn
-9. QR encode: `sessionId + publicKey của server`
-
-**Android quét QR:**
-10. Nút "Quét mã từ laptop" → mở ZXing camera
-11. Decode QR → lấy sessionId + public key laptop
-12. Thực hiện ECDH: gửi public key của phone lên server
-13. Cả hai tính `sharedSecret`
-14. `verificationCode = first6digits(SHA256(sharedSecret))`
-
-**Xác nhận:**
-15. Android hiển thị mã 6 số (font monospace lớn, chia nhóm `XX XX XX`)
-16. Laptop hiển thị mã 6 số tương tự
-17. User so sánh → nhấn Xác nhận / Từ chối trên Android
-18. Session AES key được thiết lập
-
-**Sync:**
-19. Chọn kiểu sync: Full / Một chiều (Phone→Laptop) / Chỉ mục chọn
-20. Checkbox: Bao gồm Web/App | Bao gồm Accounts
-21. Mã hóa payload AES → gửi qua HTTP
-22. Kiểm tra hash toàn vẹn
-23. Progress: icon đổi theo từng bước (🔐 Mã hóa → 📦 Chuẩn bị → 🚀 Truyền → ✅ Xác minh)
-24. Hoàn tất: số record, thời gian, auto-close sau 10s
-
-**Tự hủy phiên khi:**
-- Không có kết nối trong 3 phút
-- Sau khi sync xong
-- User nhấn Hủy
-- IP mạng thay đổi
-
-#### Nhật ký LAN Sync
-- Thời gian, Thiết bị, IP, Số record, Trạng thái
-- Nút xóa log
+1. Vào trang **Releases** → tải file `.apk` mới nhất
+2. Trên điện thoại Android: **Cài đặt → Bảo mật → Nguồn không rõ → Bật**
+   - Hoặc: **Cài đặt → Ứng dụng → Cài đặt đặc biệt → Cài từ nguồn khác**
+3. Mở file APK vừa tải và nhấn **Cài đặt**
+4. Mở ứng dụng → Tạo Master Password → Xong!
 
 ---
 
-### E. Cài Đặt
+## 🗺️ Roadmap
 
-- Chủ đề: Sáng / Tối / Hệ thống (lưu DataStore, apply ngay)
-- LAN Sync → màn hình LAN Sync
-- Đổi Master Password
-- Backup / Restore
-- Sao lưu tự động
-- Thông tin ứng dụng:
-  - Phiên bản, tên tác giả
-  - Danh sách công nghệ sử dụng
-  - Chính sách bảo mật (dialog đơn giản)
-
----
-
-## 7. UI/UX YÊU CẦU
-
-### Design System
-- **Material 3** components xuyên suốt
-- **Corner radius**: 16-24dp cho cards, 16dp cho fields
-- **Color brand**: Primary `#4C6EF5`, gradient Primary → PrimaryLight `#7B96FF`
-- **Dark/Light** theme hoàn chỉnh (không hard-code màu)
-- Background gradient nhẹ (không flat cứng)
-
-### Màn hình Auth
-- Logo centered với gradient box 80-88dp, corner 24-28dp
-- Setup/Unlock: vertically centered layout
-
-### Trang chủ
-- Stats row với 2 chip nho nhỏ hiển thị số lượng
-- Search bar Material 3 style
-- WebApp cards có icon emoji lớn, tên, số account dạng badge
-
-### LAN Sync (premium look)
-- Radar animation khi chờ kết nối (vẽ bằng Canvas hoặc animated rings)
-- Timeline step indicator (Tạo phiên ✓ → Kết nối ✓ → Xác thực… → Đồng bộ)
-- Mã 6 số: font monospace, rất to, chia 3 nhóm 2 số
-- Micro-interactions: fade-in số, haptic feedback khi confirm
-- Text bảo mật nhỏ ở dưới: "Mã hóa AES-256 · Không dùng server trung gian · Phiên tự hủy sau 3 phút"
-
-### Chung
-- Haptic feedback khi copy, confirm, error
-- Toast message cho các hành động copy
-- Empty state có illustration (emoji + text mô tả)
-- Loading state với CircularProgressIndicator
-- Error state với retry button
-- Confirm dialog trước khi xóa (không xóa thẳng)
-- Snackbar với Undo cho swipe-to-delete
+- [x] Phase 1 — Auth (Setup + Unlock) + Database + Navigation
+- [x] Phase 2 — Home Screen + Add/Edit Account + Password Generator
+- [x] Phase 3 — Backup/Restore + Settings + Change Password
+- [x] Phase 4 — LAN Sync (HTTP Server + QR + ECDH + Sync)
+- [ ] Phase 5 — Polish (Animations + Micro-interactions + Edge cases)
+- [ ] Auto-backup theo lịch
+- [ ] Widget màn hình khóa
+- [ ] Import từ Bitwarden, 1Password
+- [ ] Tìm kiếm mật khẩu trùng / yếu
 
 ---
 
-## 8. SECURITY NON-NEGOTIABLES
+## 🤝 Đóng góp
 
-Những điều KHÔNG BAO GIỜ được làm:
-- KHÔNG lưu plaintext password xuống disk
-- KHÔNG lưu encryption key xuống disk (chỉ trong memory)
-- KHÔNG upload data lên bất kỳ server nào
-- KHÔNG dùng `allowBackup=true` (đã set false trong Manifest)
-- KHÔNG log password hoặc key ra Logcat
-- KHÔNG dùng `ECB` mode cho AES (chỉ dùng GCM)
+Pull requests luôn được chào đón! Vui lòng:
 
----
-
-## 9. CÁCH LÀM VIỆC VỚI USER
-
-User mới học lập trình, cần:
-- Code **paste-and-run**: mỗi file phải hoàn chỉnh, đúng package, không thiếu import
-- Chỉ rõ **đường dẫn file** cho từng code snippet
-- Giải thích **ngắn gọn** mỗi file làm gì (1-2 dòng)
-- Khi gặp lỗi build: phân tích ngay, fix cụ thể từng dòng/file
-- Chia thành **phases** có thể build và chạy được:
-  - ✅ **Phase 1**: Auth (Setup + Unlock) + DB + Navigation cơ bản *(đã xong)*
-  - 🔄 **Phase 2**: Home Screen + Add/Edit Account + Password Generator
-  - ⏳ **Phase 3**: Backup/Restore + Settings + Change Password
-  - ⏳ **Phase 4**: LAN Sync (HTTP Server + QR + ECDH + Sync)
-  - ⏳ **Phase 5**: Polish (Animations + Micro-interactions + Edge cases)
+1. Fork repository
+2. Tạo branch mới: `git checkout -b feature/ten-tinh-nang`
+3. Commit: `git commit -m "feat: thêm tính năng X"`
+4. Push: `git push origin feature/ten-tinh-nang`
+5. Mở Pull Request
 
 ---
 
-## 10. TRẠNG THÁI HIỆN TẠI
+## 📄 Chính sách bảo mật
 
-### ✅ Phase 1 đã hoàn tất và chạy được:
-- Project setup với Kotlin 1.9.24 + AGP 8.5.1
-- CryptoManager: AES-256-GCM + PBKDF2 + password strength + password generator
-- SessionManager: in-memory key + lockout logic
-- Room Database: WebAppEntity + AccountEntity + tất cả DAOs
-- DataStore: PreferencesRepository (theme, biometric, settings)
-- Hilt DI: AppModule
-- Navigation: Screen sealed class
-- SetupScreen + SetupViewModel: tạo Master Password lần đầu
-- UnlockScreen + UnlockViewModel: unlock + lockout countdown
-- Material 3 Theme: Color, Type, Theme (dark/light)
-- HomeScreen: placeholder, chờ Phase 2
-
-### ⚠️ Lưu ý đã phát sinh khi build Phase 1:
-- AGP 8.5.1 không tương thích với Kotlin 2.0+ và composeBom 2024.08+
-- Phải dùng Kotlin 1.9.24 + composeBom 2024.06.00 + composeOptions thay vì kotlin.compose plugin
-- compileSdk/targetSdk phải là **34** (không phải 35)
+- **Không có server:** Toàn bộ dữ liệu lưu trên thiết bị của bạn
+- **Không có analytics:** Không theo dõi hành vi người dùng
+- **Không backup tự động lên cloud:** `android:allowBackup="false"`
+- **Mã nguồn mở:** Bạn có thể kiểm tra toàn bộ code
 
 ---
 
-## 11. YÊU CẦU KHI BẮT ĐẦU LẠI
+## 📜 License
 
-Nếu đây là chat mới:
-1. Đọc toàn bộ prompt này
-2. Xác nhận đã hiểu kiến trúc và trạng thái
-3. Hỏi user muốn bắt đầu từ Phase nào (thường là Phase 2)
-4. Generate code theo đúng conventions đã mô tả
-5. Đảm bảo version dependencies khớp với bảng ở Mục 2
+```
+MIT License — Copyright (c) 2026 hieuj2k4
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction...
+```
 
 ---
 
-*Prompt này được tạo tự động từ quá trình phát triển Aemeath Phase 1.*
-*Cập nhật lần cuối: Phase 1 hoàn tất.*
+<div align="center">
+
+**Được xây dựng với ❤️ bởi [@hieuj2k4](https://github.com/hieuj2k4)**
+
+*AES-256-GCM · PBKDF2 · ECDH · Offline-first · No cloud · Open source*
+
+</div>
